@@ -1,0 +1,22 @@
+{
+    "useMin":false,
+    "name":"alu",
+    "paths":[
+        {
+            "name":"client",
+            "local":"wx",
+            "path":"../DemoLaya/bin/libs/",
+            "map":"../DemoLaya/bin/libs/",
+            "declarePath":"../DemoLaya/libs/",
+            "declareName":"alu.d.ts"
+        },
+        {
+            "name":"server",
+            "local":"dist",
+            "path":"../DemoServer/node_modules/alu/dist/",
+            "map":"../DemoServer/node_modules/alu/dist/",
+            "declarePath":"../DemoServer/node_modules/alu/",
+            "declareName":"index.d.ts"
+        }
+    ]
+}
