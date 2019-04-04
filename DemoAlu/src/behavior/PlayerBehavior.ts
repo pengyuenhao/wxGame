@@ -9,11 +9,10 @@ export class PlayerBehavior extends BehaviorAttribute<EntityData> {
     @inject(SerachFunc)
     protected sFun: SerachFunc;
 
-    @Field(Vector2,"position")
-    position:IOperate<Vector2>;
-
     init(){
-        this.position.eq(new Vector2());
+        this.root.value.position.eq(new Vector2());
+        this.isEntity = true;
+        console.log("[初始化玩家行为]");
     }
 
 }

@@ -11,4 +11,10 @@ export class Template {
             "@type": "Player"
         }]
     };
+    public static readonly Enemy = {
+        "@type": "EntityData",
+        "behaviors": [{
+            "@type": "Enemy"
+        }]
+    };
 }

@@ -7314,6 +7314,8 @@ __decorate([Object(_decorator_FieldDecorator__WEBPACK_IMPORTED_MODULE_0__["Field
 
 __decorate([Object(_decorator_FieldDecorator__WEBPACK_IMPORTED_MODULE_0__["Field"])(String, "@class")], BehaviorAttribute.prototype, "class", void 0);
 
+__decorate([Object(_decorator_StatusDecorator__WEBPACK_IMPORTED_MODULE_1__["Status"])(_enum_StatusEnum__WEBPACK_IMPORTED_MODULE_2__["StatusEnum"].isEntity)], BehaviorAttribute.prototype, "isEntity", void 0);
+
 __decorate([Object(_decorator_StatusDecorator__WEBPACK_IMPORTED_MODULE_1__["Status"])(_enum_StatusEnum__WEBPACK_IMPORTED_MODULE_2__["StatusEnum"].isDeath)], BehaviorAttribute.prototype, "isDeath", void 0);
 
 __decorate([Object(_decorator_StatusDecorator__WEBPACK_IMPORTED_MODULE_1__["Status"])(_enum_StatusEnum__WEBPACK_IMPORTED_MODULE_2__["StatusEnum"].isIdle)], BehaviorAttribute.prototype, "isIdle", void 0);
@@ -8405,7 +8407,7 @@ function Behav(value) {
     CONST_behaviorBinder.bind(target.constructor).to(new DelayString(value)).toProperty(propertName);
   };
 }
-function BehaviorInject(inst, target) {
+function BehaviorInject(inst, target, isInit = true) {
   if (!inst) return;
   if (!target) target = inst;
   let behaviors = inst.value.behaviors;
@@ -8419,12 +8421,14 @@ function BehaviorInject(inst, target) {
     });
 
     for (let i = 0; i < behaviors.length; i++) {
-      let type = Object(_TypeDecorator__WEBPACK_IMPORTED_MODULE_3__["GetTypeByValue"])(behaviors[i].value);
-      let name = behaviors[i].value.class.value;
+      let behavior = behaviors[i];
+      if (behavior == null) continue;
+      let type = Object(_TypeDecorator__WEBPACK_IMPORTED_MODULE_3__["GetTypeByValue"])(behavior.value);
+      let name = behavior.value.class.value;
 
       if (name == null) {
         name = type;
-        behaviors[i].value.class.value = type;
+        behavior.value.class.value = type;
       }
 
       if (name == null || behaviors.hasOwnProperty(name)) continue;
@@ -8432,20 +8436,27 @@ function BehaviorInject(inst, target) {
     }
 
     for (let i = 0; i < behaviors.length; i++) {
-      let behavior = inst.value.behaviors[i];
+      let behavior = behaviors[i];
       if (behavior == null) continue;
       behavior.value.root = inst;
-      InteriorInject(behaviors, behavior);
       Object(_StatusDecorator__WEBPACK_IMPORTED_MODULE_0__["StatusInject"])(inst, behavior);
       Object(_AttrDecorator__WEBPACK_IMPORTED_MODULE_1__["AttrInject"])(inst, behavior);
-      BehaviorInject(inst, behavior);
+      BehaviorInject(inst, behavior, false);
+    }
+
+    for (let i = 0; i < behaviors.length; i++) {
+      let behavior = behaviors[i];
+      if (behavior == null) continue;
+      InitInject(behaviors, behavior);
     }
   } else {
-    InteriorInject(behaviors, target);
+    if (isInit) {
+      InitInject(behaviors, target);
+    }
   }
 }
 
-function InteriorInject(inst, target) {
+function InitInject(inst, target) {
   if (!target.value.hasOwnProperty("__isInit__")) {
     Object.defineProperty(target.value, "__isInit__", {
       get: function () {
@@ -10603,7 +10614,6 @@ class OperateArray extends Array {
         newValue = null;
       }
 
-      console.log("[索引]" + i + "[操作]" + serial + "[值]" + data + "=>" + newValue);
       this[i] = newValue;
       this.report(this.serial, newValue, data, [i]);
     }
@@ -11861,14 +11871,14 @@ var __decorate = undefined && undefined.__decorate || function (decorators, targ
 
 let PlayerBehavior = class PlayerBehavior extends peng_field__WEBPACK_IMPORTED_MODULE_0__["BehaviorAttribute"] {
   init() {
-    this.position.eq(new peng_field__WEBPACK_IMPORTED_MODULE_0__["Vector2"]());
+    this.root.value.position.eq(new peng_field__WEBPACK_IMPORTED_MODULE_0__["Vector2"]());
+    this.isEntity = true;
+    console.log("[初始化玩家行为]");
   }
 
 };
 
 __decorate([Object(peng_ioc__WEBPACK_IMPORTED_MODULE_1__["inject"])(_func_SearchFunc__WEBPACK_IMPORTED_MODULE_2__["SerachFunc"])], PlayerBehavior.prototype, "sFun", void 0);
-
-__decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Field"])(peng_field__WEBPACK_IMPORTED_MODULE_0__["Vector2"], "position")], PlayerBehavior.prototype, "position", void 0);
 
 PlayerBehavior = __decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Type"])("Player")], PlayerBehavior);
 
@@ -11905,7 +11915,10 @@ var __decorate = undefined && undefined.__decorate || function (decorators, targ
 
 let WorldBehavior = class WorldBehavior extends peng_field__WEBPACK_IMPORTED_MODULE_0__["BehaviorAttribute"] {
   init() {
-    this.position.eq(new peng_field__WEBPACK_IMPORTED_MODULE_0__["Vector2"]());
+    this.root.value.position.eq(new peng_field__WEBPACK_IMPORTED_MODULE_0__["Vector2"]());
+    this.isEntity = false;
+    this.isRunning.eq(false);
+    console.log("[初始化世界行为]");
   }
 
   update(delta) {
@@ -11924,11 +11937,12 @@ let WorldBehavior = class WorldBehavior extends peng_field__WEBPACK_IMPORTED_MOD
         let v = new peng_field__WEBPACK_IMPORTED_MODULE_0__["Vector2"](speed.value * Math.cos(rotate.value) * delta * 0.001, speed.value * Math.sin(rotate.value) * delta * 0.001);
         position.add(v);
         let area = new _define_GeometryDefine__WEBPACK_IMPORTED_MODULE_2__["Circle"](position.value.x, position.value.y, range.value);
-        continue;
         this.sFun.search(area, [peng_field__WEBPACK_IMPORTED_MODULE_0__["StatusEnum"].isEntity]).then(arr => {
           for (let m of arr) {
             if (this.root != m) {
+              if (m.value.serial.value == serial.value) continue;
               this.missile.remove(i);
+              console.log("[索引]" + i + "/" + this.missile.length + "[撞击]" + position + "[S]" + serial);
               break;
             }
           }
@@ -11945,7 +11959,7 @@ __decorate([Object(peng_ioc__WEBPACK_IMPORTED_MODULE_3__["inject"])(_func_Search
 
 __decorate([Object(peng_ioc__WEBPACK_IMPORTED_MODULE_3__["inject"])(_func_MathFunc__WEBPACK_IMPORTED_MODULE_5__["MathFunc"])], WorldBehavior.prototype, "mFun", void 0);
 
-__decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Field"])(peng_field__WEBPACK_IMPORTED_MODULE_0__["Vector2"], "position")], WorldBehavior.prototype, "position", void 0);
+__decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Field"])(Boolean, "isRunning")], WorldBehavior.prototype, "isRunning", void 0);
 
 __decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Field"])(_define_MissileDefine__WEBPACK_IMPORTED_MODULE_1__["Missile"], "missile", Array)], WorldBehavior.prototype, "missile", void 0);
 
@@ -11981,6 +11995,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _command_StartCmd__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./src/command/StartCmd.ts");
 /* harmony import */ var _func_MathFunc__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("./src/func/MathFunc.ts");
 /* harmony import */ var _func_SearchFunc__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__("./src/func/SearchFunc.ts");
+/* harmony import */ var _model_MainModel__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__("./src/model/MainModel.ts");
+
 
 
 
@@ -12000,6 +12016,7 @@ class MainContext extends peng_ioc__WEBPACK_IMPORTED_MODULE_0__["Context"] {
     this.sglMgr = this.injectBinder.getInstance(peng_ioc__WEBPACK_IMPORTED_MODULE_0__["NSignalManager"]);
     this.injectBinder.bind(_func_MathFunc__WEBPACK_IMPORTED_MODULE_2__["MathFunc"]).toSingleton();
     this.injectBinder.bind(_func_SearchFunc__WEBPACK_IMPORTED_MODULE_3__["SerachFunc"]).toSingleton();
+    this.injectBinder.bind(_model_MainModel__WEBPACK_IMPORTED_MODULE_4__["default"]).toSingleton();
     this.commandBinder.bind("Start").to(_command_StartCmd__WEBPACK_IMPORTED_MODULE_1__["default"]);
   }
 
@@ -12030,6 +12047,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _define_TemplateDefine__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__("./src/define/TemplateDefine.ts");
 /* harmony import */ var _behavior_PlayerBehavior__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__("./src/behavior/PlayerBehavior.ts");
 /* harmony import */ var _func_MathFunc__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__("./src/func/MathFunc.ts");
+/* harmony import */ var _model_MainModel__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__("./src/model/MainModel.ts");
+/* harmony import */ var _func_SearchFunc__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__("./src/func/SearchFunc.ts");
 var __decorate = undefined && undefined.__decorate || function (decorators, target, key, desc) {
   var c = arguments.length,
       r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
@@ -12047,20 +12066,21 @@ var __decorate = undefined && undefined.__decorate || function (decorators, targ
 
 
 
+
+
 class RootMain {
   constructor() {
     this.event = new Map();
     this.context = new _MainContext__WEBPACK_IMPORTED_MODULE_1__["default"](this);
     this.lastframe = 0;
     this.frameBuffer = [];
-    this.entitys = [];
     this.cmdMap = new Map();
     this.indexMap = new Map();
     this.addBuffer = [];
     this.removeBuffer = [];
     this.recycle = [];
     this.cmdMap.set("World", (actor, task, value) => {
-      let world = this.entitys[0].value.getBehavior(_behavior_WorldBehavior__WEBPACK_IMPORTED_MODULE_3__["WorldBehavior"]);
+      let world = this.mMdl.entitys[0].value.getBehavior(_behavior_WorldBehavior__WEBPACK_IMPORTED_MODULE_3__["WorldBehavior"]);
 
       if (world != null) {
         let index = this.indexMap.get(actor);
@@ -12090,26 +12110,27 @@ class RootMain {
     });
     this.cmdMap.set("Player", (actor, task, value) => {
       let index = this.indexMap.get(actor);
-      let entity = this.entitys[index];
+      let entity = this.mMdl.entitys[index];
       if (entity == null) return;
       let player = entity.value.getBehavior(_behavior_PlayerBehavior__WEBPACK_IMPORTED_MODULE_7__["PlayerBehavior"]);
       if (player == null) return;
 
       switch (task) {
         case "Move":
-          player.position.eq(new peng_field__WEBPACK_IMPORTED_MODULE_4__["Vector2"](value[0], value[1]));
+          entity.value.position.eq(new peng_field__WEBPACK_IMPORTED_MODULE_4__["Vector2"](value[0], value[1]));
           break;
 
         case "Click":
           let position = new peng_field__WEBPACK_IMPORTED_MODULE_4__["Vector2"](value[0], value[1]);
           let rotate = -0.5 * Math.PI;
           let missile = Object(peng_field__WEBPACK_IMPORTED_MODULE_4__["GetConverter"])(_define_MissileDefine__WEBPACK_IMPORTED_MODULE_5__["Missile"]).parse({
-            health: 5,
-            range: 10,
-            speed: 100,
+            health: 2,
+            range: 25,
+            speed: 300,
             rotate: rotate,
             position: position,
-            serial: this.mFun.number(0, 0x1000000)
+            serial: actor,
+            type: 0
           }, _define_MissileDefine__WEBPACK_IMPORTED_MODULE_5__["Missile"]);
           let index;
 
@@ -12132,7 +12153,11 @@ class RootMain {
   }
 
   start() {
-    this.world = this.entitys[0].value.getBehavior(_behavior_WorldBehavior__WEBPACK_IMPORTED_MODULE_3__["WorldBehavior"]);
+    this.world = this.mMdl.entitys[0].value.getBehavior(_behavior_WorldBehavior__WEBPACK_IMPORTED_MODULE_3__["WorldBehavior"]);
+  }
+
+  getEntity() {
+    return this.mMdl.entitys;
   }
 
   addEntity(serial, template) {
@@ -12154,10 +12179,10 @@ class RootMain {
       let serial = buffer.serial;
       let index = this.indexMap.get(serial);
       if (index == null) return;
-      let entity = this.entitys[index];
+      let entity = this.mMdl.entitys[index];
       this.indexMap.delete(serial);
       this.recycle.push(index);
-      this.entitys[index] = null;
+      this.mMdl.entitys[index] = null;
       this.emit("Leave", entity);
       console.log("[移除实体]" + serial + "[索引]" + index);
     }
@@ -12181,13 +12206,13 @@ class RootMain {
 
     if (index == null) {
       index = this.recycle.pop();
-      if (index == null) index = this.entitys.length;
+      if (index == null) index = this.mMdl.entitys.length;
     }
 
     entity.value.index.value = index;
     this.injectSkill(entity);
     this.indexMap.set(serial, index);
-    this.entitys[index] = entity;
+    this.mMdl.entitys[index] = entity;
     this.emit("Enter", entity);
     console.log("[注册实体]" + serial + "[索引]" + index);
   }
@@ -12230,7 +12255,8 @@ class RootMain {
   update() {
     let buffer = this.frameBuffer.shift();
     if (buffer == null) return false;
-    this.mFun.seed(this.lastframe);
+    this.preClear();
+    this.preClassify();
 
     for (let i = 0; i < buffer.packet.length; i++) {
       let packet = buffer.packet[i];
@@ -12242,8 +12268,8 @@ class RootMain {
       }
     }
 
-    for (let i = 0; i < this.entitys.length; i++) {
-      let entity = this.entitys[i];
+    for (let i = 0; i < this.mMdl.entitys.length; i++) {
+      let entity = this.mMdl.entitys[i];
       if (entity == null) continue;
       let behaviors = entity.value.behaviors;
       if (behaviors == null) continue;
@@ -12255,8 +12281,10 @@ class RootMain {
       }
     }
 
-    for (let i = 0; i < this.entitys.length; i++) {
-      let entity = this.entitys[i];
+    this.sFun.runSearch();
+
+    for (let i = 0; i < this.mMdl.entitys.length; i++) {
+      let entity = this.mMdl.entitys[i];
       if (entity == null) continue;
       entity.result();
       entity.publish();
@@ -12272,6 +12300,53 @@ class RootMain {
     return true;
   }
 
+  preClear() {
+    this.mFun.seed(this.lastframe);
+    this.sFun.classifyIndexBuf = [];
+
+    for (let value of this.sFun.filterMapArr) {
+      value.clear();
+    }
+
+    this.sFun.filterMapArr = [];
+    this.sFun.searchArr = [];
+  }
+
+  preClassify() {
+    let len = this.mMdl.entitys.length;
+
+    for (let i = 0; i < len; i++) {
+      let entity = this.mMdl.entitys[i];
+      if (!entity) continue;
+      let status = entity.value.status;
+      let index = entity.value.index.value;
+      if (!status) continue;
+      let count = 0;
+      let arr;
+      let stat;
+
+      for (let i = 0; i < status.length; i++) {
+        stat = status[i].value;
+
+        while (stat >= 1) {
+          if ((stat & 1) != 0) {
+            arr = this.sFun.classifyIndexBuf[count];
+
+            if (!arr) {
+              arr = [];
+              this.sFun.classifyIndexBuf[count] = arr;
+            }
+
+            arr.push(index);
+          }
+
+          count += 1;
+          stat >>= 1;
+        }
+      }
+    }
+  }
+
   push(packet) {
     this.frameBuffer.push(packet);
   }
@@ -12281,6 +12356,47 @@ class RootMain {
 __decorate([Object(peng_ioc__WEBPACK_IMPORTED_MODULE_0__["inject"])("inject")], RootMain.prototype, "injectBinder", void 0);
 
 __decorate([Object(peng_ioc__WEBPACK_IMPORTED_MODULE_0__["inject"])(_func_MathFunc__WEBPACK_IMPORTED_MODULE_8__["MathFunc"])], RootMain.prototype, "mFun", void 0);
+
+__decorate([Object(peng_ioc__WEBPACK_IMPORTED_MODULE_0__["inject"])(_func_SearchFunc__WEBPACK_IMPORTED_MODULE_10__["SerachFunc"])], RootMain.prototype, "sFun", void 0);
+
+__decorate([Object(peng_ioc__WEBPACK_IMPORTED_MODULE_0__["inject"])(_model_MainModel__WEBPACK_IMPORTED_MODULE_9__["default"])], RootMain.prototype, "mMdl", void 0);
+
+/***/ }),
+
+/***/ "./src/define/AsyncDefine.ts":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Async", function() { return Async; });
+class Async {
+  constructor(caller) {
+    this.methodArr = [];
+    if (caller == null) caller = this;
+    this.caller = caller;
+  }
+
+  then(method) {
+    this.methodArr.push(method);
+    return this;
+  }
+
+  resolve(...result) {
+    let len = this.methodArr.length;
+
+    for (let i = 0; i < len; i++) {
+      if (!this.methodArr[i]) continue;
+      this.methodArr[i].apply(this.caller, result);
+    }
+
+    if (this.onFinish) this.onFinish();
+  }
+
+  finish(method) {
+    this.onFinish = method;
+  }
+
+}
 
 /***/ }),
 
@@ -12302,6 +12418,13 @@ var __decorate = undefined && undefined.__decorate || function (decorators, targ
 
 
 let EntityData = class EntityData extends peng_field__WEBPACK_IMPORTED_MODULE_0__["RootObject"] {};
+
+__decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Status"])(peng_field__WEBPACK_IMPORTED_MODULE_0__["StatusEnum"].isDeath)], EntityData.prototype, "isDeath", void 0);
+
+__decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Status"])(peng_field__WEBPACK_IMPORTED_MODULE_0__["StatusEnum"].isEntity)], EntityData.prototype, "isEntity", void 0);
+
+__decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Field"])(peng_field__WEBPACK_IMPORTED_MODULE_0__["Vector2"], "position")], EntityData.prototype, "position", void 0);
+
 EntityData = __decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Type"])("EntityData")], EntityData);
 
 
@@ -12601,6 +12724,8 @@ __decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Field"])(Number, "wo
 
 __decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Field"])(Number, "systemTime")], InitData.prototype, "systemTime", void 0);
 
+__decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Field"])(Number, "updateTime")], InitData.prototype, "updateTime", void 0);
+
 __decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Field"])(Uint8Array, "entitys")], InitData.prototype, "entitys", void 0);
 
 InitData = __decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Type"])("InitData")], InitData);
@@ -12648,12 +12773,137 @@ __decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Field"])(Number, "sp
 
 __decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Field"])(Number, "serial")], Missile.prototype, "serial", void 0);
 
+__decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Field"])(Number, "type")], Missile.prototype, "type", void 0);
+
 Missile = __decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Type"])("Missile")], Missile);
 
 let MissileConverter = class MissileConverter extends peng_field__WEBPACK_IMPORTED_MODULE_0__["SettleConverter"] {};
 MissileConverter = __decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Convert"])(Missile)], MissileConverter);
 let MissileSettle = class MissileSettle extends peng_field__WEBPACK_IMPORTED_MODULE_0__["Settler"] {};
 MissileSettle = __decorate([Object(peng_field__WEBPACK_IMPORTED_MODULE_0__["Settle"])(Missile)], MissileSettle);
+
+/***/ }),
+
+/***/ "./src/define/Quadtree.ts":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "TreeNode", function() { return TreeNode; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "QuadTree", function() { return QuadTree; });
+/* harmony import */ var peng_field__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./node_modules/peng-field/index.js");
+/* harmony import */ var peng_field__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(peng_field__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _GeometryDefine__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./src/define/GeometryDefine.ts");
+
+
+class TreeNode {
+  constructor(x, y, data) {
+    this.point = new peng_field__WEBPACK_IMPORTED_MODULE_0__["Vector2"](x, y);
+    this.data = data;
+  }
+
+}
+class QuadTree {
+  constructor(boundary, capacity) {
+    this.nodes = [];
+    this.branchs = [];
+    this.divided = false;
+
+    if (!boundary) {
+      throw TypeError('boundary is null or undefined');
+    }
+
+    if (!(boundary instanceof _GeometryDefine__WEBPACK_IMPORTED_MODULE_1__["Rectangle"])) {
+      throw TypeError('boundary should be a Rectangle');
+    }
+
+    if (typeof capacity !== 'number') {
+      throw TypeError(`capacity should be a number but is a ${typeof capacity}`);
+    }
+
+    if (capacity < 1) {
+      throw RangeError('capacity must be greater than 0');
+    }
+
+    this.boundary = boundary;
+    this.capacity = capacity;
+  }
+
+  subdivide() {
+    let x = this.boundary.x;
+    let y = this.boundary.y;
+    let w = this.boundary.w / 2;
+    let h = this.boundary.h / 2;
+    let branchs = new Array(4);
+    let ne = new _GeometryDefine__WEBPACK_IMPORTED_MODULE_1__["Rectangle"](x + w, y - h, w, h);
+    let northeast = new QuadTree(ne, this.capacity);
+    branchs[0] = northeast;
+    let nw = new _GeometryDefine__WEBPACK_IMPORTED_MODULE_1__["Rectangle"](x - w, y - h, w, h);
+    let northwest = new QuadTree(nw, this.capacity);
+    branchs[1] = northwest;
+    let se = new _GeometryDefine__WEBPACK_IMPORTED_MODULE_1__["Rectangle"](x + w, y + h, w, h);
+    let southeast = new QuadTree(se, this.capacity);
+    branchs[2] = southeast;
+    let sw = new _GeometryDefine__WEBPACK_IMPORTED_MODULE_1__["Rectangle"](x - w, y + h, w, h);
+    let southwest = new QuadTree(sw, this.capacity);
+    branchs[3] = southwest;
+    this.branchs = branchs;
+    this.divided = true;
+  }
+
+  insert(node) {
+    if (!this.boundary.contains(node.point)) {
+      return null;
+    }
+
+    if (this.nodes) {
+      if (this.nodes.length < this.capacity) {
+        this.nodes.push(node);
+        return this;
+      }
+    }
+
+    if (!this.divided) {
+      this.subdivide();
+    }
+
+    let result;
+
+    for (let i = 0; i < 4; i++) {
+      result = this.branchs[i].insert(node);
+      if (result) return result;
+    }
+
+    return null;
+  }
+
+  query(range, found) {
+    if (!found) {
+      found = [];
+    }
+
+    if (!range.intersects(this.boundary)) {
+      return found;
+    }
+
+    if (this.nodes) {
+      for (let n of this.nodes) {
+        if (range.contains(n.point)) {
+          found.push(n);
+        }
+      }
+    }
+
+    if (this.divided) {
+      for (let i = 0; i < 4; i++) {
+        this.branchs[i].query(range, found);
+      }
+    }
+
+    return found;
+  }
+
+}
 
 /***/ }),
 
@@ -12674,6 +12924,12 @@ Template.Player = {
   "@type": "EntityData",
   "behaviors": [{
     "@type": "Player"
+  }]
+};
+Template.Enemy = {
+  "@type": "EntityData",
+  "behaviors": [{
+    "@type": "Enemy"
   }]
 };
 
@@ -12715,12 +12971,161 @@ class MathFunc {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SerachFunc", function() { return SerachFunc; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "FilterHandler", function() { return FilterHandler; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SearchHandler", function() { return SearchHandler; });
+/* harmony import */ var _define_GeometryDefine__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/define/GeometryDefine.ts");
+/* harmony import */ var _define_AsyncDefine__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__("./src/define/AsyncDefine.ts");
+/* harmony import */ var _define_Quadtree__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__("./src/define/Quadtree.ts");
+/* harmony import */ var peng_ioc__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__("./node_modules/peng-ioc/index.js");
+/* harmony import */ var peng_ioc__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(peng_ioc__WEBPACK_IMPORTED_MODULE_3__);
+/* harmony import */ var _model_MainModel__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__("./src/model/MainModel.ts");
+var __decorate = undefined && undefined.__decorate || function (decorators, target, key, desc) {
+  var c = arguments.length,
+      r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc,
+      d;
+  if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+  return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+
+
+
+
+
+
 class SerachFunc {
+  constructor() {
+    this.searchArr = [];
+    this.classifyIndexBuf = [];
+    this.filterMapArr = [];
+    this.boundary = new _define_GeometryDefine__WEBPACK_IMPORTED_MODULE_0__["Rectangle"](0, 0, 2000, 2000);
+  }
+
   search(shape, filter, exclude) {
-    return null;
+    let handler = new SearchHandler();
+    let async = new _define_AsyncDefine__WEBPACK_IMPORTED_MODULE_1__["Async"]();
+    handler.async = async;
+    handler.filter = filter;
+    handler.shape = shape;
+    this.searchArr.push(handler);
+    return async;
+  }
+
+  searchRequest() {
+    this.transformFilter(this.searchArr, (handler, signArr) => {
+      let arr = [];
+      arr = this.getLocalSearch(signArr, handler.shape);
+      handler.async.resolve(arr);
+    });
+    this.searchArr = [];
+  }
+
+  transformFilter(handlerArr, method) {
+    let handler;
+    let len = handlerArr.length;
+
+    for (let i = 0; i < len; i++) {
+      handler = handlerArr[i];
+      let signArr = [];
+
+      if (!handler.filter) {
+        continue;
+      } else {
+        for (let j = 0; j < handler.filter.length; j++) {
+          let serial = handler.filter[j] >>> 5;
+          signArr[serial] |= 1 << handler.filter[j];
+        }
+      }
+
+      method.call(this, handler, signArr);
+    }
+  }
+
+  getLocalSearch(signArr, shape) {
+    let arr = [];
+    let filterMapArr = this.filterMapArr;
+
+    for (let i = 0; i < signArr.length; i++) {
+      let dict = filterMapArr[i];
+
+      if (!dict) {
+        dict = new Map();
+        filterMapArr[i] = dict;
+      }
+
+      let sign = signArr[i];
+      let tree;
+
+      if (!dict.has(sign)) {
+        let indexAllArr = [];
+        let tmp = sign;
+        let count = 0;
+
+        while (tmp) {
+          if (tmp & 1) {
+            let indexArr = this.classifyIndexBuf[count];
+            if (indexArr) indexAllArr.push(...indexArr);
+          }
+
+          tmp >>>= 1;
+          count += 1;
+        }
+
+        if (indexAllArr.length != 0) {
+          tree = new _define_Quadtree__WEBPACK_IMPORTED_MODULE_2__["QuadTree"](this.boundary, 20);
+
+          for (let j = 0; j < indexAllArr.length; j++) {
+            let entity = this.mMdl.entitys[indexAllArr[j]];
+            let node = new _define_Quadtree__WEBPACK_IMPORTED_MODULE_2__["TreeNode"](entity.value.position.value.x, entity.value.position.value.y, entity.value.index.value);
+            tree.insert(node);
+          }
+        } else {
+          tree = null;
+        }
+
+        dict.set(sign, tree);
+      } else {
+        tree = dict.get(sign);
+      }
+
+      if (!tree) continue;
+      let n = tree.query(shape);
+
+      for (let j = 0; j < n.length; j++) {
+        let entity = this.mMdl.entitys[n[j].data];
+        if (!entity) continue;
+        arr.push(entity);
+      }
+    }
+
+    return arr;
+  }
+
+  runSearch() {
+    let loop = 0;
+
+    while (true) {
+      this.searchRequest();
+
+      if (this.searchArr.length != 0) {
+        if (loop > 100) {
+          console.error("[注意！存在循环搜索，请注意检查代码]");
+          break;
+        } else {
+          loop += 1;
+          continue;
+        }
+      } else {
+        break;
+      }
+    }
   }
 
 }
+
+__decorate([Object(peng_ioc__WEBPACK_IMPORTED_MODULE_3__["inject"])(_model_MainModel__WEBPACK_IMPORTED_MODULE_4__["default"])], SerachFunc.prototype, "mMdl", void 0);
+
+class FilterHandler {}
+class SearchHandler extends FilterHandler {}
 
 /***/ }),
 
@@ -12793,6 +13198,21 @@ __webpack_require__.r(__webpack_exports__);
 
 function version() {
   return "alu@0.0.1";
+}
+
+/***/ }),
+
+/***/ "./src/model/MainModel.ts":
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return MainModel; });
+class MainModel {
+  constructor() {
+    this.entitys = [];
+  }
+
 }
 
 /***/ }),

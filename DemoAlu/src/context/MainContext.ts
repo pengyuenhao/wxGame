@@ -2,6 +2,7 @@ import * as ioc from "peng-ioc";
 import StartCmd from "../command/StartCmd";
 import { MathFunc } from "../func/MathFunc";
 import { SerachFunc } from "../func/SearchFunc";
+import MainModel from "../model/MainModel";
 
 export default class MainContext extends ioc.Context{
     public sglMgr : ioc.ISignalManager;
@@ -19,6 +20,8 @@ export default class MainContext extends ioc.Context{
 
         this.injectBinder.bind(MathFunc).toSingleton();
         this.injectBinder.bind(SerachFunc).toSingleton();
+
+        this.injectBinder.bind(MainModel).toSingleton();
 
         //绑定信号与指令
         this.commandBinder.bind("Start").to(StartCmd);

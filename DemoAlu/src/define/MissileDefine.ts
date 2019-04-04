@@ -14,6 +14,8 @@ export class Missile{
     public speed: IOperate<number>;
     @Field(Number, "serial")
     public serial: IOperate<number>;
+    @Field(Number, "type")
+    public type: IOperate<number>;
 }
 @Convert(Missile)
 class MissileConverter extends SettleConverter<Missile>{

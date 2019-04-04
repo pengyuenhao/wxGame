@@ -8,14 +8,19 @@ import { Missile } from "../define/MissileDefine";
 import { Template } from "../define/TemplateDefine";
 import { PlayerBehavior } from "../behavior/PlayerBehavior";
 import { MathFunc } from "../func/MathFunc";
+import MainModel from "../model/MainModel";
+import { SerachFunc } from "../func/SearchFunc";
 
 export class RootMain {
     @inject("inject")
     injectBinder: ioc.InjectBinder;
     @inject(MathFunc)
     protected mFun: MathFunc;
+    @inject(SerachFunc)
+    protected sFun: SerachFunc;
+    @inject(MainModel)
+    protected mMdl: MainModel;
 
-    public entitys: RootSettler<EntityData>[];
     public recycle: number[];
     public indexMap: Map<number, number>;
     public frameBuffer: FrameData[];
@@ -30,7 +35,6 @@ export class RootMain {
         this.context = new MainContext(this);
         this.lastframe = 0;
         this.frameBuffer = [];
-        this.entitys = [];
         this.cmdMap = new Map();
         this.indexMap = new Map();
         this.addBuffer = [];
@@ -38,7 +42,7 @@ export class RootMain {
         this.recycle = [];
 
         this.cmdMap.set("World", (actor: number, task: string, value: number[]) => {
-            let world = this.entitys[0].value.getBehavior(WorldBehavior);
+            let world = this.mMdl.entitys[0].value.getBehavior(WorldBehavior);
             if (world != null) {
                 let index = this.indexMap.get(actor);
                 switch (task) {
@@ -64,34 +68,35 @@ export class RootMain {
         });
         this.cmdMap.set("Player", (actor: number, task: string, value: number[]) => {
             let index = this.indexMap.get(actor);
-            let entity = this.entitys[index];
+            let entity = this.mMdl.entitys[index];
             if (entity == null) return;
             let player = entity.value.getBehavior(PlayerBehavior);
             if (player == null) return;
             switch (task) {
                 case "Move":
-                    player.position.eq(new Vector2(value[0], value[1]));
+                    entity.value.position.eq(new Vector2(value[0], value[1]));
                     break;
                 case "Click":
                     let position = new Vector2(value[0], value[1]);
                     let rotate = - 0.5 * Math.PI;
                     let missile = GetConverter(Missile).parse({
-                        health: 5,
-                        range: 10,
-                        speed: 100,
+                        health: 2,
+                        range: 25,
+                        speed: 300,
                         rotate: rotate,
                         position: position,
-                        serial: this.mFun.number(0,0x1000000)
+                        serial: actor,
+                        type: 0
                     }, Missile);
                     let index;
                     //循环使用
-                    for(let i=0;i<this.world.missile.length;i++){
-                        if(this.world.missile[i] == null){
+                    for (let i = 0; i < this.world.missile.length; i++) {
+                        if (this.world.missile[i] == null) {
                             index = i;
                             break;
                         }
                     }
-                    this.world.missile.add(missile,index);
+                    this.world.missile.add(missile, index);
                     break;
             }
             //console.log("[玩家]" + actor + "[执行]" + task + "[数据]" + value);
@@ -103,7 +108,10 @@ export class RootMain {
     }
     public start() {
         //获取全局世界实体
-        this.world = this.entitys[0].value.getBehavior(WorldBehavior);
+        this.world = this.mMdl.entitys[0].value.getBehavior(WorldBehavior);
+    }
+    public getEntity():RootSettler<EntityData>[]{
+        return this.mMdl.entitys;
     }
     public addEntity(serial, template) {
         this.addBuffer.push({
@@ -122,10 +130,10 @@ export class RootMain {
             let serial = buffer.serial;
             let index = this.indexMap.get(serial);
             if (index == null) return;
-            let entity = this.entitys[index];
+            let entity = this.mMdl.entitys[index];
             this.indexMap.delete(serial);
             this.recycle.push(index);
-            this.entitys[index] = null;
+            this.mMdl.entitys[index] = null;
             this.emit("Leave", entity);
             console.log("[移除实体]" + serial + "[索引]" + index);
         }
@@ -145,12 +153,12 @@ export class RootMain {
         let serial = entity.value.serial.value;
         if (index == null) {
             index = this.recycle.pop();
-            if (index == null) index = this.entitys.length;
+            if (index == null) index = this.mMdl.entitys.length;
         }
         entity.value.index.value = index;
         this.injectSkill(entity);
         this.indexMap.set(serial, index);
-        this.entitys[index] = entity;
+        this.mMdl.entitys[index] = entity;
         this.emit("Enter", entity);
         console.log("[注册实体]" + serial + "[索引]" + index);
     }
@@ -190,8 +198,9 @@ export class RootMain {
     public update() {
         let buffer = this.frameBuffer.shift();
         if (buffer == null) return false;
-        //设置本次更新的随机种子
-        this.mFun.seed(this.lastframe);
+        this.preClear();
+        this.preClassify();
+
         for (let i = 0; i < buffer.packet.length; i++) {
             let packet = buffer.packet[i];
             for (let j = 0; j < packet.commands.length; j++) {
@@ -200,8 +209,8 @@ export class RootMain {
                 fun && fun.call(this, packet.actor, cmd.task, cmd.value);
             }
         }
-        for (let i = 0; i < this.entitys.length; i++) {
-            let entity = this.entitys[i];
+        for (let i = 0; i < this.mMdl.entitys.length; i++) {
+            let entity = this.mMdl.entitys[i];
             if (entity == null) continue;
             let behaviors = entity.value.behaviors;
             if (behaviors == null) continue;
@@ -211,8 +220,10 @@ export class RootMain {
                 behavior.value.update(buffer.delta);
             }
         }
-        for (let i = 0; i < this.entitys.length; i++) {
-            let entity = this.entitys[i];
+        //运行搜索请求
+        this.sFun.runSearch();
+        for (let i = 0; i < this.mMdl.entitys.length; i++) {
+            let entity = this.mMdl.entitys[i];
             if (entity == null) continue;
             entity.result();
             entity.publish();
@@ -224,6 +235,53 @@ export class RootMain {
         }
         this.lastframe = buffer.frame;
         return true;
+    }
+
+    /**清理上一帧的缓存数据 */
+    private preClear() {
+        //设置本次更新的随机种子
+        this.mFun.seed(this.lastframe);
+        this.sFun.classifyIndexBuf = [];
+        //清空过滤规则缓存字典
+        for (let value of this.sFun.filterMapArr) {
+            value.clear();
+        }
+        this.sFun.filterMapArr = [];
+        this.sFun.searchArr = [];
+    }
+    /**
+     * 预处理数据
+     * @param entity 
+     */
+    private preClassify() {
+        let len = this.mMdl.entitys.length;
+        for (let i = 0; i < len; i++) {
+            let entity = this.mMdl.entitys[i];
+            if (!entity) continue;
+            //预先分类各个状态的数据
+            let status = entity.value.status;
+            let index = entity.value.index.value;
+            if (!status) continue;
+            let count = 0;
+            let arr: number[];
+            let stat: number;
+            for (let i = 0; i < status.length; i++) {
+                stat = status[i].value as number;
+                while (stat >= 1) {
+                    //如果标记为真
+                    if ((stat & 1) != 0) {
+                        arr = this.sFun.classifyIndexBuf[count];
+                        if (!arr) {
+                            arr = [];
+                            this.sFun.classifyIndexBuf[count] = arr;
+                        }
+                        arr.push(index);
+                    }
+                    count += 1;
+                    stat >>= 1;
+                }
+            }
+        }
     }
 
     public push(packet: FrameData) {

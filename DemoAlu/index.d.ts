@@ -58,19 +58,24 @@ declare module alu {
         public init();
         public start();
         public update();
+        public getEntity();
         public push(packet: FrameData);
         public on(event: "Enter" | "Leave", listen: Function);
         public register(entity: IEvent<EntityData>);
     }
     class WorldBehavior extends BehaviorAttribute<EntityData> {
-        position: IEvent<Vector2>;
         missile: IEventArray<Missile>;
+        isRunning: IEvent<Boolean>;
     }
     class PlayerBehavior extends BehaviorAttribute<EntityData> {
-        position: IEvent<Vector2>;
+    }
+    class EnemyBehavior extends BehaviorAttribute<EntityData> {
     }
     class EntityData extends RootObject<EntityData> {
+        isDeath: boolean;
+        isEntity: boolean;
 
+        position: IEvent<Vector2>;
     }
     class CommandData {
         /**
@@ -113,6 +118,7 @@ declare module alu {
         id: number;
         worldFrame: number;
         systemTime: number;
+        updateTime:number;
         entitys: Uint8Array;
     }
     class InitInfo {

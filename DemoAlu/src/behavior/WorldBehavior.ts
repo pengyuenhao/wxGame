@@ -13,13 +13,16 @@ export class WorldBehavior extends BehaviorAttribute<EntityData> {
     @inject(MathFunc)
     protected mFun: MathFunc;
 
-    @Field(Vector2,"position")
-    position:IOperate<Vector2>;
+    @Field(Boolean, "isRunning")
+    isRunning: IOperate<Boolean>;
     @Field(Missile, "missile", Array)
     missile: IOperateArray<Missile>;
 
     init(){
-        this.position.eq(new Vector2());
+        this.root.value.position.eq(new Vector2());
+        this.isEntity = false;    
+        this.isRunning.eq(false);
+        console.log("[初始化世界行为]");
     }
     update(delta){
         for (let i = 0; i < this.missile.length; i++) {
@@ -37,13 +40,14 @@ export class WorldBehavior extends BehaviorAttribute<EntityData> {
                 let v = new Vector2(speed.value * Math.cos(rotate.value) * delta * 0.001, speed.value * Math.sin(rotate.value) * delta * 0.001);
                 position.add(v);
                 let area: Circle = new Circle(position.value.x, position.value.y, range.value);
-                continue;
                 this.sFun.search(area, [StatusEnum.isEntity]).then((arr: IOperate<EntityData>[]) => {
                     for (let m of arr) {
                         //必须攻击其他实体
                         if (this.root != m) {
+                            //跳过自身
+                            if(m.value.serial.value == serial.value)continue;
                             this.missile.remove(i);
-                            //console.log("[索引]" + i + "/" + this.missile.length + "[撞击]" + position + "[S]" + serial);
+                            console.log("[索引]" + i + "/" + this.missile.length + "[撞击]" + position + "[S]" + serial);
                             break;
                         }
                     }

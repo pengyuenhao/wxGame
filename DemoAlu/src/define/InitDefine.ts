@@ -8,6 +8,8 @@ export class InitData{
     worldFrame : number;
     @Field(Number,"systemTime")
     systemTime : number;
+    @Field(Number,"updateTime")
+    updateTime : number;
     @Field(Uint8Array,"entitys")
     entitys : Uint8Array;
 }[]

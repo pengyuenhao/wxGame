@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+      "outDir": "./dist/",
+      "sourceMap": true,
+      "allowJs": true,
+      "module": "esnext",       // 使用 ES2015 模块
+      //"module":"es6",
+      "removeComments": true,   
+      "target": "es6",          // 编译成 ES2015 (Babel 将做剩下的事情)
+      "moduleResolution": "node",
+      "experimentalDecorators": true
+    },
+      // 这个目录下的代码不会被 typescript 处理
+      "exclude": [
+        "node_modules","index.js"
+      ]
+}
