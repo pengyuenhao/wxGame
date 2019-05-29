@@ -6,7 +6,7 @@
   "main": "index.js",
   "dependencies": {
     "md5": "^2.2.1",
-    "peng-field": "^3.4.1",
+    "peng-field": "^3.5.0",
     "peng-ioc": "^1.4.0",
     "peng-pathfinding": "^0.2.0"
   },
