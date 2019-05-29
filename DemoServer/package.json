@@ -1,0 +1,18 @@
+{
+  "name": "demoserver",
+  "version": "1.0.0",
+  "description": "",
+  "bin": {
+    "demoserver": "config.js"
+  },
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "peng-field": "^3.5.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
