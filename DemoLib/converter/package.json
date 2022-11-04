@@ -20,7 +20,7 @@
     "babel-minify-webpack-plugin": "^0.3.1",
     "clean-webpack-plugin": "^2.0.0",
     "del": "^4.0.0",
-    "gulp": "^3.9.1",
+    "gulp": "^4.0.2",
     "gulp-rename": "^1.4.0",
     "gulp-uglify": "^3.0.2",
     "gulp-util": "^3.0.8",
